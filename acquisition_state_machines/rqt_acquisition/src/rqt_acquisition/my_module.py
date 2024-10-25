@@ -14,11 +14,11 @@ import python_qt_binding.QtCore as QtCore
 from std_srvs.srv import Empty, EmptyResponse
 
 def print_events(obj):
-    rospy.loginfo(obj)
+    rospy.logdebug(obj)
     a = dir(obj)
     for prop in a:
         if "Event" in prop:
-            rospy.logwarn(prop)
+            rospy.logdebug(prop)
 
 def check_if_lib_moment_arm_exists_at_path(some_file_with_complete_path):
     directory = os.path.dirname(some_file_with_complete_path)
@@ -35,9 +35,9 @@ def construct_lib_name_from_osim_name(osim_name):
     return "libMomentArm_"+osim_name+".so"
 
 def create_path_label(subject_id, activity_name, session_num):
-    rospy.loginfo(subject_id)
-    rospy.loginfo(activity_name)
-    rospy.loginfo(session_num)
+    rospy.logdebug(subject_id)
+    rospy.logdebug(activity_name)
+    rospy.logdebug(session_num)
     return os.path.join("/srv/host_data/RTValidation", subject_id,session_num)
 
 class MyPlugin(Plugin):
@@ -96,16 +96,16 @@ class MyPlugin(Plugin):
             model.setNameFilters(["*.osim"])
             model.setNameFilterDisables(False)
         if False:
-            rospy.logwarn(dir(model))
-            rospy.logwarn(model.columnCount())
-            rospy.logwarn(model.removeColumn(1))
-            rospy.logwarn(model.beginRemoveColumns)
-            rospy.logwarn(help(model.beginRemoveColumns))
-            rospy.logwarn(model.columnCount())
-            rospy.logwarn(model.rootPath())
-            rospy.logwarn(model.rootDirectory())
-            #rospy.logwarn(model.size())
-            #rospy.logwarn(model.event())
+            rospy.logdebug(dir(model))
+            rospy.logdebug(model.columnCount())
+            rospy.logdebug(model.removeColumn(1))
+            rospy.logdebug(model.beginRemoveColumns)
+            rospy.logdebug(help(model.beginRemoveColumns))
+            rospy.logdebug(model.columnCount())
+            rospy.logdebug(model.rootPath())
+            rospy.logdebug(model.rootDirectory())
+            #rospy.logdebug(model.size())
+            #rospy.logdebug(model.event())
 
         if True:
             #rospy.logerr(dir(self._widget.model_selector.SelectedClicked))
@@ -147,11 +147,18 @@ class MyPlugin(Plugin):
         context.add_widget(self._widget)
         
     def set_running(self, req = None):    
+        ## check if stuff works out:
+        if not os.path.exists(self.model_path):
+            rospy.logfatal("Cannot find model in the specified path. Every node will fail.")
+            raise Exception("Model Path doesn't exist! Every node will fail.")
+        if not self.lib_path_exists:
+            ## maybe I can set it to a default library or something...
+            rospy.logwarn("Moment Arm Library not found at current path. SO will fail.")
         self._widget.model_group.setEnabled(False)
         return EmptyResponse()
 
     def set_from_params(self):
-        rospy.logwarn("set_from_params")
+        rospy.logdebug("set_from_params")
         if rospy.has_param(self.my_namespace):
             my_dic = rospy.get_param(self.my_namespace)
             for key, value in my_dic.items():
@@ -163,7 +170,7 @@ class MyPlugin(Plugin):
         self.update_widget_states()
             
     def set_to_params(self):
-        rospy.logwarn("set_to_params")
+        rospy.logdebug("set_to_params")
         the_params = {  "model_path"        :self.model_path,
                         "lib_path"          :self.lib_path,
                         "activity_name"     :self.activity_name,
@@ -172,10 +179,10 @@ class MyPlugin(Plugin):
                         "save_path"         :self.save_path,
                         "description_text"  :self.description_text}
 
-        rospy.logwarn(the_params)
+        rospy.logdebug(the_params)
         for key, value in the_params.items():
             rospy.set_param(f"/{self.my_namespace}/{key}", value )
-        rospy.logwarn("what I got: "+str(rospy.get_param(f"/{self.my_namespace}")))
+        rospy.logdebug("what I got: "+str(rospy.get_param(f"/{self.my_namespace}")))
         #self.update_widget_states()
         
     def refresh_path_service(self, req = None):
@@ -183,7 +190,7 @@ class MyPlugin(Plugin):
         return EmptyResponse()
 
     def update_widget_states(self, req = None):
-        rospy.logwarn("updating widget states")
+        rospy.logdebug("updating widget states")
         self._widget.resolved_path_name.setText(   self.save_path )
         self._widget.model_selected_name.setText(self.model_path)
         self.lib_path_exists, self.lib_path = check_if_lib_moment_arm_exists_at_path(self.model_path)
@@ -203,7 +210,7 @@ class MyPlugin(Plugin):
         #self._widget.model_selector.reset()
         #self._widget.model_selector.update()
         #index = self._widget.model_selector.selectedIndexes()[0]
-        #rospy.logwarn(index)
+        #rospy.logdebug(index)
         #self._widget.model_selector.setExpanded(index, True)
         
 
@@ -284,21 +291,21 @@ class MyPlugin(Plugin):
                 #rospy.loginfo(dir(event.flags()))
                 #rospy.loginfo(event.modifiers())
                 if event.type() == QtCore.QEvent.MouseButtonDblClick:
-                    #rospy.logwarn('meta-double-click')
+                    #rospy.logdebug('meta-double-click')
                     if self._widget.model_selector.selectedIndexes():
                         index = self._widget.model_selector.selectedIndexes()[0]
                         info = self._widget.model_selector.model().fileInfo(index)
                         if ".osim" in info.absoluteFilePath():
                             self.model_path = info.absoluteFilePath()
                             self._widget.model_selected_name.setText(self.model_path)
-                            #rospy.logwarn(self.model_path)
+                            #rospy.logdebug(self.model_path)
                             self.lib_path_exists, self.lib_path = check_if_lib_moment_arm_exists_at_path(self.model_path) 
                         return True
                 ## this is not working
                 if event.modifiers() == QtCore.Qt.MetaModifier:
-                    rospy.loginfo("i am a MetaModifier")
+                    rospy.logdebug("i am a MetaModifier")
                     if event.type() == QtCore.QEvent.MouseButtonDblClick:
-                        rospy.logwarn('meta-double-click')
+                        rospy.logdebug('meta-double-click')
                         return True
                     if event.type() == QtCore.QEvent.MouseButtonPress:
                         # kill selection when meta-key is also pressed
