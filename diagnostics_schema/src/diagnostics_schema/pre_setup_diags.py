@@ -111,7 +111,7 @@ class Sound(ATest):
             return self.criticality+self.soundreturn.stderr
 
     def troubleshootingmsg(self):
-        return ["You probably want to check the sharing options of the docker, there is likely some mistake there.","Maybe the file doesn't exist?"]
+        return ["Close anything that could be using the sound card (like Firefox, Vlc, Totem [debian/ubuntu just calls it Videos now], ffmpeg, etc.)","You probably want to check the sharing options of the docker, there is likely some mistake there.","Maybe the file doesn't exist?"]
     def testname(self):
         return f"Check if alsa can play sound file: {self.soundfile}"
 
