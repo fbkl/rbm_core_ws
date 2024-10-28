@@ -63,7 +63,7 @@
 	url = https://github.com/opensimrt-ros/ximu3_ros.git
 [submodule "video_stream_opencv"]
 	path = video_stream_opencv
-	url = https://github.com/ros-drivers/video_stream_opencv.git
+	url = https://github.com/opensimrt-ros/video_stream_opencv.git
 [submodule "vicon_sync"]
 	path = vicon_sync
 	url = https://github.com/opensimrt-ros/vicon_sync.git
