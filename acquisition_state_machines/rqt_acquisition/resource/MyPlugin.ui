@@ -89,11 +89,24 @@
 				</property>
 			</widget>
 		</widget>
-		<widget class="QPushButton" name="start_button">
+		<widget class="QPushButton" name="set_and_go_button">
 			<property name="geometry">
 				<rect>
 					<x>5</x>
 					<y>320</y>
+					<width>98</width>
+					<height>27</height>
+				</rect>
+			</property>
+			<property name="text">
+				<string>Set model</string>
+			</property>
+		</widget>
+		<widget class="QPushButton" name="start_button">
+			<property name="geometry">
+				<rect>
+					<x>5</x>
+					<y>360</y>
 					<width>98</width>
 					<height>27</height>
 				</rect>
@@ -106,7 +119,7 @@
 			<property name="geometry">
 				<rect>
 					<x>5</x>
-					<y>360</y>
+					<y>400</y>
 					<width>98</width>
 					<height>27</height>
 				</rect>

@@ -12,6 +12,9 @@ from python_qt_binding.QtGui import QIcon
 import python_qt_binding.QtGui as QtGui
 import python_qt_binding.QtCore as QtCore
 from std_srvs.srv import Empty, EmptyResponse
+import subprocess
+from flexbe_msgs.msg import OutcomeRequest
+import traceback
 
 def print_events(obj):
     rospy.logdebug(obj)
@@ -39,6 +42,21 @@ def create_path_label(subject_id, activity_name, session_num):
     rospy.logdebug(activity_name)
     rospy.logdebug(session_num)
     return os.path.join("/srv/host_data/RTValidation", subject_id,session_num)
+
+def validate_model(model_file):
+    #return True
+
+    rospy.loginfo(f"trying to validate model {model_file}")
+    ## this is totally specific to AR and the way the things are working right now
+    ## I will check if I have C7 defined, because if it doesn't using AR will crash the system
+    with open(model_file) as f:
+        contents = f.read()
+        if "C7" in contents:
+            return True
+        else:
+            return False
+
+
 
 class MyPlugin(Plugin):
 
@@ -83,9 +101,14 @@ class MyPlugin(Plugin):
         self._widget.start_button.clicked[bool].connect(self._handle_start_clicked)
         self._widget.stop_button.setIcon(QIcon.fromTheme('media-playback-stop'))
         self._widget.stop_button.clicked[bool].connect(self._handle_stop_clicked)
+        self._widget.set_and_go_button.setIcon(QIcon.fromTheme('media-playback-start'))
+        self._widget.set_and_go_button.clicked[bool].connect(self._handle_set_and_go_clicked)
 
         self._widget.generate_lib_moment_arm_button.clicked[bool].connect(self._handle_lib_moment_clicked)
         
+
+        self.flexbe_commander_publisher = rospy.Publisher("/flexbe/command/transition", OutcomeRequest, queue_size=1)
+
 
         if True:
             model = QFileSystemModel()
@@ -147,14 +170,21 @@ class MyPlugin(Plugin):
         context.add_widget(self._widget)
         
     def set_running(self, req = None):    
-        ## check if stuff works out:
-        if not os.path.exists(self.model_path):
-            rospy.logfatal("Cannot find model in the specified path. Every node will fail.")
-            raise Exception("Model Path doesn't exist! Every node will fail.")
-        if not self.lib_path_exists:
-            ## maybe I can set it to a default library or something...
-            rospy.logwarn("Moment Arm Library not found at current path. SO will fail.")
-        self._widget.model_group.setEnabled(False)
+        try:
+            ## check if stuff works out:
+            if not os.path.exists(self.model_path):
+                rospy.logfatal("Cannot find model in the specified path. Every node will fail.")
+                raise Exception("Model Path doesn't exist! Every node will fail.")
+            if not self.lib_path_exists:
+                ## maybe I can set it to a default library or something...
+                rospy.logwarn("Moment Arm Library not found at current path. SO will fail.")
+            if not validate_model(self.model_path):
+                raise Exception("This model is invalid!")
+
+            self._widget.model_group.setEnabled(False)
+        except:
+            traceback.print_exc()
+
         return EmptyResponse()
 
     def set_from_params(self):
@@ -257,14 +287,32 @@ class MyPlugin(Plugin):
 
     def _handle_lib_moment_clicked(self):
         rospy.loginfo("lib_moment clicked!")
+        self._widget.generate_lib_moment_arm_button.setEnabled("False")
+        previous_text = self._widget.generate_lib_moment_arm_button.text()
+        self._widget.generate_lib_moment_arm_button.setText("Generating...")
+
+        subprocess.run(f"python3 /catkin_ws/src/ros_biomech/lib_moment_arm/symbolic_momen_arm_v40.py --model={self.model_path} --results_destination={self.lib_path}",shell=True)
+        self._widget.generate_lib_moment_arm_button.setText(previous_text)
+        self._widget.generate_lib_moment_arm_button.setEnabled("True")
+        self.update_things()
     
     def _handle_start_clicked(self):
         rospy.loginfo("start clicked!")
+
+        start_msg = OutcomeRequest()
+        start_msg.outcome = 0
+        start_msg.target = 'Start_Recording_Question_Mark'
+        self.flexbe_commander_publisher.publish(start_msg)
+
         self.set_from_params()
         self.set_running()
 
     def _handle_stop_clicked(self):
         rospy.loginfo("stop clicked!")
+        stop_msg = OutcomeRequest()
+        stop_msg.outcome = 0
+        stop_msg.target = 'Recording'
+        self.flexbe_commander_publisher.publish(stop_msg)
         self.set_from_params()
 
     def _handle_model_changed_keypress(self,event):
@@ -277,6 +325,17 @@ class MyPlugin(Plugin):
             rospy.loginfo("DoubleClicked")
         rospy.loginfo(dir(event))
         rospy.loginfo(key)
+
+    def _handle_set_and_go_clicked(self):
+        rospy.loginfo("set and go clicked!")
+        try:
+            command_msg = OutcomeRequest()
+            command_msg.outcome = 0
+            command_msg.target = 'Load_Combined_Perspective'
+            self.flexbe_commander_publisher.publish(command_msg)
+            #self._widget.model_group.setEnabled(Falseart)
+        except:
+            traceback.print_exception()
 
     def eventFilter(self, source, event):
         rospy.logdebug("something")
@@ -315,6 +374,7 @@ class MyPlugin(Plugin):
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
+        self.flexbe_commander_publisher.unregister()
         pass
 
     def save_settings(self, plugin_settings, instance_settings):

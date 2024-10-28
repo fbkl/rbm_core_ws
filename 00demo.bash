@@ -11,7 +11,7 @@ W1=(
 #"rosrun flexbe_input behavior_input" ## included in flexbe_all
 "rosrun acquisition_of_raw_data multiservice_plex.py"
 "roslaunch acquisition_of_raw_data flexbe_all.launch"
-"roslaunch test_moticon_insoles show_urdf_everything.launch use_gui:=false"
+"roslaunch moticon_insoles show_urdf_everything.launch use_gui:=false"
 #"roslaunch ximu3_ros ximu_lower.launch do_calibration:=true parent_frame_id:=subject_heading wait_to_start:=true"
 "roslaunch ximu3_ros ximu_lower.launch do_calibration:=true wait_to_start:=true"
 "roslaunch osrt_ros t42.launch run_as_service:=true parent_frame:=map"
