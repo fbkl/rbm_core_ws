@@ -6,8 +6,8 @@
 			<rect>
 				<x>0</x>
 				<y>0</y>
-				<width>800</width>
-				<height>500</height>
+				<width>704</width>
+				<height>650</height>
 			</rect>
 		</property>
 		<property name="windowTitle">
@@ -21,7 +21,7 @@
 				<rect>
 					<x>2</x>
 					<y>2</y>
-					<width>810</width>
+					<width>710</width>
 					<height>300</height>
 				</rect>
 			</property>
@@ -42,7 +42,7 @@
 						<x>5</x>
 						<y>235</y>
 						<width>298</width>
-						<height>25</height>
+						<height>27</height>
 					</rect>
 				</property>
 				<property name="text">
@@ -54,20 +54,33 @@
 					<rect>
 						<x>105</x>
 						<y>235</y>
-						<width>498</width>
-						<height>25</height>
+						<width>495</width>
+						<height>27</height>
 					</rect>
 				</property>
 				<property name="text">
 					<string>/</string>
 				</property>
 			</widget>
+			<widget class="QPushButton" name="set_and_go_button">
+				<property name="geometry">
+					<rect>
+						<x>607</x>
+						<y>235</y>
+						<width>98</width>
+						<height>27</height>
+					</rect>
+				</property>
+				<property name="text">
+					<string>Set model</string>
+				</property>
+			</widget>
 			<widget class="QPushButton" name="generate_lib_moment_arm_button">
 				<property name="geometry">
 					<rect>
 						<x>5</x>
-						<y>260</y>
-						<width>210</width>
+						<y>265</y>
+						<width>200</width>
 						<height>27</height>
 					</rect>
 				</property>
@@ -79,9 +92,9 @@
 				<property name="geometry">
 					<rect>
 						<x>235</x>
-						<y>260</y>
+						<y>265</y>
 						<width>500</width>
-						<height>25</height>
+						<height>27</height>
 					</rect>
 				</property>
 				<property name="text">
@@ -89,25 +102,85 @@
 				</property>
 			</widget>
 		</widget>
-		<widget class="QPushButton" name="set_and_go_button">
+		<widget class="QLabel" name="current_state_text">
 			<property name="geometry">
 				<rect>
 					<x>5</x>
 					<y>320</y>
-					<width>98</width>
+					<width>500</width>
 					<height>27</height>
 				</rect>
 			</property>
 			<property name="text">
-				<string>Set model</string>
+				<string>State:</string>
+			</property>
+		</widget>
+		
+
+		<widget class="QPushButton" name="turn_on_insoles_button">
+			<property name="geometry">
+				<rect>
+					<x>5</x>
+					<y>360</y>
+					<width>200</width>
+					<height>27</height>
+				</rect>
+			</property>
+			<property name="text">
+				<string>Turn On Insoles</string>
+			</property>
+		</widget>
+
+
+
+
+
+
+		<widget class="QPushButton" name="turn_on_button">
+			<property name="geometry">
+				<rect>
+					<x>5</x>
+					<y>400</y>
+					<width>200</width>
+					<height>27</height>
+				</rect>
+			</property>
+			<property name="text">
+				<string>Turn on IMUs</string>
+			</property>
+		</widget>
+		<widget class="QPushButton" name="don_button">
+			<property name="geometry">
+				<rect>
+					<x>5</x>
+					<y>440</y>
+					<width>200</width>
+					<height>27</height>
+				</rect>
+			</property>
+			<property name="text">
+				<string>Wear IMUs</string>
+			</property>
+		</widget>
+		<widget class="QPushButton" name="calibrate_button">
+			<property name="geometry">
+				<rect>
+					<x>5</x>
+					<y>480</y>
+					<width>200</width>
+					<height>27</height>
+				</rect>
+			</property>
+			<property name="text">
+				<string>Calibrate</string>
 			</property>
 		</widget>
 		<widget class="QPushButton" name="start_button">
 			<property name="geometry">
 				<rect>
 					<x>5</x>
-					<y>360</y>
-					<width>98</width>
+					<y>520</y>
+					<width>200</width>
 					<height>27</height>
 				</rect>
 			</property>
@@ -119,8 +192,8 @@
 			<property name="geometry">
 				<rect>
 					<x>5</x>
-					<y>400</y>
-					<width>98</width>
+					<y>560</y>
+					<width>200</width>
 					<height>27</height>
 				</rect>
 			</property>
@@ -128,6 +201,21 @@
 				<string>Stop</string>
 			</property>
 		</widget>
+		
+		<widget class="QPushButton" name="another_button">
+			<property name="geometry">
+				<rect>
+					<x>5</x>
+					<y>600</y>
+					<width>200</width>
+					<height>27</height>
+				</rect>
+			</property>
+			<property name="text">
+				<string>Another?</string>
+			</property>
+		</widget>
+		
 
 		<widget class="QGroupBox" name="activity_group">
 			<property name="title">
@@ -135,10 +223,10 @@
 			</property>
 			<property name="geometry">
 				<rect>
-					<x>120</x>
-					<y>310</y>
-					<width>600</width>
-					<height>170</height>
+					<x>210</x>
+					<y>350</y>
+					<width>502</width>
+					<height>320</height>
 				</rect>
 			</property>
 
@@ -171,7 +259,7 @@
 			<widget class="QLabel" name="session_label">
 				<property name="geometry">
 					<rect>
-						<x>335</x>
+						<x>340</x>
 						<y>25</y>
 						<width>48</width>
 						<height>27</height>
@@ -210,9 +298,9 @@
 			<widget class="QLineEdit" name="session_name">
 				<property name="geometry">
 					<rect>
-						<x>385</x>
+						<x>395</x>
 						<y>25</y>
-						<width>98</width>
+						<width>102</width>
 						<height>27</height>
 					</rect>
 				</property>
@@ -239,7 +327,7 @@
 					<rect>
 						<x>75</x>
 						<y>65</y>
-						<width>428</width>
+						<width>423</width>
 						<height>27</height>
 					</rect>
 				</property>
@@ -250,13 +338,26 @@
 					<string>/srv/host_data/</string>
 				</property>
 			</widget>
+			<widget class="QPushButton" name="do_set_name_button">
+				<property name="geometry">
+					<rect>
+						<x>5</x>
+						<y>100</y>
+						<width>492</width>
+						<height>27</height>
+					</rect>
+				</property>
+				<property name="text">
+					<string>Set Name</string>
+				</property>
+			</widget>
 
 
 			<widget class="QTextEdit" name="description">
 				<property name="geometry">
 					<rect>
 						<x>5</x>
-						<y>100</y>
+						<y>140</y>
 						<width>492</width>
 						<height>60</height>
 					</rect>

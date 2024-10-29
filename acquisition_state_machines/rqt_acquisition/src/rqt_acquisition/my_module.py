@@ -14,6 +14,7 @@ import python_qt_binding.QtCore as QtCore
 from std_srvs.srv import Empty, EmptyResponse
 import subprocess
 from flexbe_msgs.msg import OutcomeRequest
+from std_msgs.msg import String
 import traceback
 
 def print_events(obj):
@@ -103,18 +104,31 @@ class MyPlugin(Plugin):
         self._widget.stop_button.clicked[bool].connect(self._handle_stop_clicked)
         self._widget.set_and_go_button.setIcon(QIcon.fromTheme('media-playback-start'))
         self._widget.set_and_go_button.clicked[bool].connect(self._handle_set_and_go_clicked)
+        self._widget.another_button.setIcon(QIcon.fromTheme('media-skip-forward'))
+        self._widget.another_button.clicked[bool].connect(self._handle_another_clicked)
+
+        self._widget.calibrate_button.clicked[bool].connect(self._handle_calibrate_clicked)
+        self._widget.turn_on_button.clicked[bool].connect(self._handle_turn_on_clicked)
+        self._widget.don_button.clicked[bool].connect(self._handle_don_clicked)
+        self._widget.do_set_name_button.clicked[bool].connect(self._handle_do_set_name_clicked)
+
+        self._widget.turn_on_insoles_button.clicked[bool].connect(self._handle_turn_on_insoles_clicked)
 
         self._widget.generate_lib_moment_arm_button.clicked[bool].connect(self._handle_lib_moment_clicked)
         
 
         self.flexbe_commander_publisher = rospy.Publisher("/flexbe/command/transition", OutcomeRequest, queue_size=1)
-
+        self.state_subscriber           = rospy.Subscriber("/flexbe/behavior_update", String, callback=self.update_state, queue_size=1)
 
         if True:
             model = QFileSystemModel()
 
-            model.setRootPath("/srv/host_data/models")
-            #model.setRootPath("/srv/host_data/")
+
+            models_path ="/srv/host_data/models/height_adjusted" 
+            if os.path.exists(models_path):
+                model.setRootPath(models_path)
+            else:
+                model.setRootPath("/srv/host_data/")
             model.removeColumns(1,2)
             model.setNameFilters(["*.osim"])
             model.setNameFilterDisables(False)
@@ -160,6 +174,8 @@ class MyPlugin(Plugin):
         self._widget.activity_name.textChanged.connect(self.update_paths)
         self._widget.session_name.textChanged.connect(self.update_paths)
         self._widget.subject_id_name.textChanged.connect(self.update_paths)
+        self._widget.description.textChanged.connect(self.update_paths)
+        self._widget.resolved_path_name.textChanged.connect(self.update_path_higher_priority)
         #self._widget.subject_id_name.changeEvent = self.update_paths
 
 
@@ -169,6 +185,51 @@ class MyPlugin(Plugin):
         self.sp = rospy.Service("/rqt_acquisition/refresh_paths", Empty, self.refresh_path_service)
         context.add_widget(self._widget)
         
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.timerEvent)
+        self.timer.start(1000)
+
+        self.disable_buttons()
+
+
+
+    def disable_buttons(self):
+        self._widget.calibrate_button.setEnabled(False)
+        self._widget.start_button.setEnabled(False)
+        self._widget.stop_button.setEnabled(False)
+        self._widget.another_button.setEnabled(False)
+        self._widget.activity_group.setEnabled(False)
+        self._widget.don_button.setEnabled(False)
+        self._widget.turn_on_button.setEnabled(False)
+        self._widget.turn_on_insoles_button.setEnabled(False)
+        self._widget.do_set_name_button.setEnabled(False)
+
+    def update_state(self, msg):
+        self.disable_buttons()
+        self._widget.current_state_text.setText("Current State:"+msg.data)
+        if msg.data == "/Get_Ready_For_Calibration":
+            self._widget.calibrate_button.setEnabled(True)
+        if msg.data == "/Start_Recording_Question_Mark":
+            self._widget.start_button.setEnabled(True)
+        if "/Recording" in msg.data:
+            self._widget.stop_button.setEnabled(True)
+        if msg.data == "/Record_Another":
+            self._widget.another_button.setEnabled(True)
+        if msg.data == "/Say_To_Change_Name":
+            self._widget.activity_group.setEnabled(True)
+
+        if "don_imus" in msg.data:
+            self._widget.don_button.setEnabled(True)
+        if "turn_on_imus" in msg.data:
+            self._widget.turn_on_button.setEnabled(True)
+        if "Say_To_Change_Name" in msg.data:
+            self._widget.do_set_name_button.setEnabled(True)
+        
+        if "Turn_On_Insoles" in msg.data:
+            self._widget.turn_on_insoles_button.setEnabled(True)
+
+
+
     def set_running(self, req = None):    
         try:
             ## check if stuff works out:
@@ -182,6 +243,7 @@ class MyPlugin(Plugin):
                 raise Exception("This model is invalid!")
 
             self._widget.model_group.setEnabled(False)
+            #self.timer.start(500) ## in ms
         except:
             traceback.print_exc()
 
@@ -257,6 +319,13 @@ class MyPlugin(Plugin):
 
         return EmptyResponse()
 
+    def update_path_higher_priority(self, event=None):
+
+        self.save_path = self._widget.resolved_path_name.text()
+        self.activity_name = self._widget.activity_name.text()
+        self.description_text = self._widget.description.toPlainText()
+        self.set_to_params()
+
     def update_paths(self, event=None):
         ## update save_path from subjectid activity and session
         self.subject_id = self._widget.subject_id_name.text()
@@ -284,16 +353,20 @@ class MyPlugin(Plugin):
         self.set_to_params()
             
 
+    def timerEvent(self):
+        #rospy.loginfo("timerEvent triggered")
+        self._widget.update()
+
 
     def _handle_lib_moment_clicked(self):
         rospy.loginfo("lib_moment clicked!")
-        self._widget.generate_lib_moment_arm_button.setEnabled("False")
+        self._widget.generate_lib_moment_arm_button.setEnabled(False)
         previous_text = self._widget.generate_lib_moment_arm_button.text()
         self._widget.generate_lib_moment_arm_button.setText("Generating...")
 
-        subprocess.run(f"python3 /catkin_ws/src/ros_biomech/lib_moment_arm/symbolic_momen_arm_v40.py --model={self.model_path} --results_destination={self.lib_path}",shell=True)
+        subprocess.run(f"python3 /catkin_ws/src/ros_biomech/lib_moment_arm/symbolic_moment_arm_v40.py --model={self.model_path} --results_destination={self.lib_path}",shell=True)
         self._widget.generate_lib_moment_arm_button.setText(previous_text)
-        self._widget.generate_lib_moment_arm_button.setEnabled("True")
+        self._widget.generate_lib_moment_arm_button.setEnabled(True)
         self.update_things()
     
     def _handle_start_clicked(self):
@@ -306,14 +379,18 @@ class MyPlugin(Plugin):
 
         self.set_from_params()
         self.set_running()
+        self._widget.start_button.setEnabled(False)
+
 
     def _handle_stop_clicked(self):
         rospy.loginfo("stop clicked!")
+        self._widget.stop_button.setEnabled(False)
         stop_msg = OutcomeRequest()
         stop_msg.outcome = 0
         stop_msg.target = 'Recording'
         self.flexbe_commander_publisher.publish(stop_msg)
         self.set_from_params()
+
 
     def _handle_model_changed_keypress(self,event):
 
@@ -328,6 +405,10 @@ class MyPlugin(Plugin):
 
     def _handle_set_and_go_clicked(self):
         rospy.loginfo("set and go clicked!")
+        ## check if model exists first 
+        if not os.path.exists(self.model_path):
+            ## how a dialog?
+            return
         try:
             command_msg = OutcomeRequest()
             command_msg.outcome = 0
@@ -336,11 +417,84 @@ class MyPlugin(Plugin):
             #self._widget.model_group.setEnabled(Falseart)
         except:
             traceback.print_exception()
+        
+        self._widget.set_and_go_button.setEnabled(False)
+    
+    def _handle_another_clicked(self):
+        rospy.loginfo("another clicked!")
+        try:
+            command_msg = OutcomeRequest()
+            command_msg.outcome = 0
+            command_msg.target = 'Record_Another'
+            self.flexbe_commander_publisher.publish(command_msg)
+            #self._widget.model_group.setEnabled(Falseart)
+            self._widget.another_button.setEnabled(False)
+        except:
+            traceback.print_exception()
+
+    def _handle_calibrate_clicked(self):
+        rospy.loginfo("calibrate_button clicked!")
+        try:
+            command_msg = OutcomeRequest()
+            command_msg.outcome = 0
+            command_msg.target = 'Get_Ready_For_Calibration'
+            self.flexbe_commander_publisher.publish(command_msg)
+            #self._widget.model_group.setEnabled(Falseart)
+            self._widget.calibrate_button.setEnabled(False)
+        except:
+            traceback.print_exception()
+            
+
+
+    def _handle_do_set_name_clicked(self):
+        rospy.loginfo("do_set_name_button clicked!")
+        try:
+            self._widget.do_set_name_button.setEnabled(False)
+            command_msg = OutcomeRequest()
+            command_msg.outcome = 0
+            command_msg.target = 'Say_To_Change_Name'
+            self.flexbe_commander_publisher.publish(command_msg)
+            #self._widget.model_group.setEnabled(Falseart)
+        except:
+            traceback.print_exception()
+    def _handle_don_clicked(self):
+        rospy.loginfo("don_button clicked!")
+        try:
+            self._widget.don_button.setEnabled(False)
+            command_msg = OutcomeRequest()
+            command_msg.outcome = 0
+            command_msg.target = 'don_imus'
+            self.flexbe_commander_publisher.publish(command_msg)
+            #self._widget.model_group.setEnabled(Falseart)
+        except:
+            traceback.print_exception()
+    def _handle_turn_on_clicked(self):
+        rospy.loginfo("turn_on_button clicked!")
+        try:
+            self._widget.turn_on_button.setEnabled(False)
+            command_msg = OutcomeRequest()
+            command_msg.outcome = 0
+            command_msg.target = 'turn_on_imus'
+            self.flexbe_commander_publisher.publish(command_msg)
+            #self._widget.model_group.setEnabled(Falseart)
+        except:
+            traceback.print_exception()
+    def _handle_turn_on_insoles_clicked(self):
+        rospy.loginfo("turn_on_insoles_button clicked!")
+        try:
+            self._widget.turn_on_insoles_button.setEnabled(False)
+            command_msg = OutcomeRequest()
+            command_msg.outcome = 0
+            command_msg.target = 'Turn_On_Insoles'
+            self.flexbe_commander_publisher.publish(command_msg)
+            #self._widget.model_group.setEnabled(Falseart)
+        except:
+            traceback.print_exception()
 
     def eventFilter(self, source, event):
         rospy.logdebug("something")
         self.update_things()
-        self.update_paths()
+        #self.update_paths()
         if not sip.isdeleted(self._widget.model_selector) and source is self._widget.model_selector.viewport():
             rospy.logdebug("i am from the model selector")
             if isinstance(event, QtGui.QMouseEvent):
@@ -375,7 +529,9 @@ class MyPlugin(Plugin):
     def shutdown_plugin(self):
         # TODO unregister all publishers here
         self.flexbe_commander_publisher.unregister()
-        pass
+        self.sr.shutdown()
+        self.sp.shutdown()
+        self.sw.shutdown()
 
     def save_settings(self, plugin_settings, instance_settings):
         # TODO save intrinsic configuration, usually using:
