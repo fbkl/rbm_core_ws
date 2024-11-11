@@ -22,9 +22,13 @@ OPTIONAL_REQUIREMENT = 'Optional: '
 
 
 class ATest(ABC):
-    def __init__(self, criticality  = REQUIREMENT):
+    def __init__(self, criticality  = REQUIREMENT, tips=[]):
         super().__init__()
         self.criticality = criticality
+        self.tips= []
+        if tips:
+            self.tips = tips
+
 
     @abstractmethod
     def run(self):
@@ -73,8 +77,8 @@ class CheckOwnHost(ATest):
 
 
 class PingHost(ATest):
-    def __init__(self, hostname, hostip, criticality = REQUIREMENT):
-        super().__init__(criticality)
+    def __init__(self, hostname, hostip, **kwargs):
+        super().__init__(**kwargs)
         ipaddress.ip_address(hostip)
         self.host = hostname
         self.hostip = hostip
@@ -96,8 +100,8 @@ class PingHost(ATest):
 
 
 class Sound(ATest):
-    def __init__(self, soundfilename, criticality= REQUIREMENT):
-        super().__init__(criticality)
+    def __init__(self, soundfilename, **kwargs):
+        super().__init__(**kwargs)
         if not os.path.exists(soundfilename):
             raise Exception("invalid sound filename")
         self.soundfile = soundfilename
@@ -116,8 +120,8 @@ class Sound(ATest):
         return f"Check if alsa can play sound file: {self.soundfile}"
 
 class Video(ATest):
-    def __init__(self, videodevname, criticality = REQUIREMENT):
-        super().__init__(criticality)
+    def __init__(self, videodevname, **kwargs):
+        super().__init__(**kwargs)
         if "/dev/video" not in videodevname:
             raise Exception(f"invalid device name {videodevname}")
         self.videodev = videodevname
@@ -176,6 +180,9 @@ def do(tests):
             exit(1)
         else:
             rospy.loginfo(f"\t[{Style.BRIGHT}{Fore.GREEN}{Fore.WHITE}{Style.NORMAL}] "+test.testname())
+            if len(test.tips)>0:
+                for tip in test.tips:
+                    rospy.loginfo(f"\t\t[{Style.BRIGHT}{Style.NORMAL}] {tip}")
     if len(fail_bin) > 0:
         rospy.logwarn("You have some warnings you may want to solve before testing, but system is usable.")
 
