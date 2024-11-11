@@ -13,9 +13,67 @@ import python_qt_binding.QtGui as QtGui
 import python_qt_binding.QtCore as QtCore
 from std_srvs.srv import Empty, EmptyResponse
 import subprocess
-from flexbe_msgs.msg import OutcomeRequest
+from flexbe_msgs.msg import OutcomeRequest, BehaviorLog
 from std_msgs.msg import String
 import traceback
+import glob
+import re
+import shutil
+import datetime
+
+rospack = rospkg.RosPack()
+MY_pkg_path = rospack.get_path("rqt_acquisition")
+sample_notebook=os.path.join(MY_pkg_path, "standard_analysis.ipynb")
+new_header = """
+
+### NAME OF ACTIVITY: {activity}
+
+SESSION ID: {session_num}
+
+SUBJECT ID: {subject}
+
+GENERATED DATE: {date_string}
+
+"""
+
+
+def text_to_ipynblines(text):
+    new_str = ""
+    for line in text.split("\n"):
+        new_str +='"' + line + r'\n",'+'\n'
+
+    return new_str
+
+def generate_custom_ipynb(new_ipynb_name, updated_header, activity,subject,session_num,weight):
+    #shutil.copy(sample_notebook, new_ipynb_name)
+    with open(sample_notebook,'r') as file:
+        my_notebook = file.read()
+    my_notebook = my_notebook.replace("ik.sto","ik_lower.sto")
+    my_notebook = my_notebook.replace("%%ACTION%%",activity)
+    #rospy.logwarn(my_notebook)
+    my_notebook = my_notebook.replace("%%SUBJECT%%",subject)
+    #rospy.logerr(my_notebook)
+    my_notebook = my_notebook.replace("%%WEIGHT%%",str(weight))
+    #rospy.loginfo(my_notebook)
+    date_ = datetime.datetime.now()
+    date_str = date_.strftime("%Y-%m-%d %I:%M:%S %p")
+    format_dic = {"session_num": session_num,"subject":subject,"activity":activity, "date_string":date_str}
+    my_notebook = my_notebook.replace(r'"%%HEADER%%\n",',text_to_ipynblines(updated_header.format(**format_dic)))
+    #rospy.logwarn(my_notebook)
+    rospy.loginfo(f"generating notebook: {new_ipynb_name}")
+    with open(new_ipynb_name,'w') as file:
+        file.write(my_notebook)
+
+
+
+def segment_activity_from_counter(activity_name):
+    match = re.match(r"([a-z]+)([0-9]+)", activity_name, re.I)
+    if match:
+        rospy.loginfo("found a trial counter, will remove it to get the activity name")
+        items = match.groups()
+        if len(items) >= 2:
+            activity_name = "".join(items[:-1])
+    return activity_name
 
 def print_events(obj):
     rospy.logdebug(obj)
@@ -32,7 +90,8 @@ def check_if_lib_moment_arm_exists_at_path(some_file_with_complete_path):
     rospy.logdebug(file_shenanigans)
     desired_lib_name = construct_lib_name_from_osim_name(filename)
 
-    lib_path =os.path.join(directory,desired_lib_name)
+    #lib_path =os.path.join(directory,desired_lib_name)
+    lib_path =os.path.join("/catkin_ws/devel/lib/",desired_lib_name)
     return os.path.exists(lib_path), lib_path
 
 def construct_lib_name_from_osim_name(osim_name):
@@ -66,7 +125,11 @@ class MyPlugin(Plugin):
         # Give QObjects reasonable names
         self.setObjectName('MyPlugin')
 
-
+        self.weight = -1
+        
+        self.sr = rospy.Service("/rqt_acquisition/set_running", Empty, self.set_running)
+        self.sw = rospy.Service("/rqt_acquisition/update_widgets", Empty, self.update_widget_states)
+        self.sp = rospy.Service("/rqt_acquisition/refresh_paths", Empty, self.refresh_path_service)
 
 
         # Process standalone plugin command-line arguments
@@ -115,10 +178,12 @@ class MyPlugin(Plugin):
         self._widget.turn_on_insoles_button.clicked[bool].connect(self._handle_turn_on_insoles_clicked)
 
         self._widget.generate_lib_moment_arm_button.clicked[bool].connect(self._handle_lib_moment_clicked)
+        self._widget.generate_action_notebook_button.clicked[bool].connect(self._generate_notebook_clicked)
         
 
         self.flexbe_commander_publisher = rospy.Publisher("/flexbe/command/transition", OutcomeRequest, queue_size=1)
         self.state_subscriber           = rospy.Subscriber("/flexbe/behavior_update", String, callback=self.update_state, queue_size=1)
+        self.flexbe_log_subscriber           = rospy.Subscriber("/flexbe/log", BehaviorLog, callback=self.update_log, queue_size=1)
 
         if True:
             model = QFileSystemModel()
@@ -146,7 +211,7 @@ class MyPlugin(Plugin):
 
         if True:
             #rospy.logerr(dir(self._widget.model_selector.SelectedClicked))
-            #self._widget.keyPressEvent = self._handle_model_changed_keypress
+            self._widget.keyPressEvent = self._handle_model_changed_keypress
 
             self._widget.model_selector.setModel(model)
             self._widget.model_selector.setColumnHidden(1,True)
@@ -178,11 +243,7 @@ class MyPlugin(Plugin):
         self._widget.resolved_path_name.textChanged.connect(self.update_path_higher_priority)
         #self._widget.subject_id_name.changeEvent = self.update_paths
 
-
             #print_events(self._widget.model_selector)
-        self.sr = rospy.Service("/rqt_acquisition/set_running", Empty, self.set_running)
-        self.sw = rospy.Service("/rqt_acquisition/update_widgets", Empty, self.update_widget_states)
-        self.sp = rospy.Service("/rqt_acquisition/refresh_paths", Empty, self.refresh_path_service)
         context.add_widget(self._widget)
         
         self.timer = QtCore.QTimer()
@@ -203,6 +264,7 @@ class MyPlugin(Plugin):
         self._widget.turn_on_button.setEnabled(False)
         self._widget.turn_on_insoles_button.setEnabled(False)
         self._widget.do_set_name_button.setEnabled(False)
+        self._widget.generate_action_notebook_button.setEnabled(False)
 
     def update_state(self, msg):
         self.disable_buttons()
@@ -214,8 +276,10 @@ class MyPlugin(Plugin):
         if "/Recording" in msg.data:
             self._widget.stop_button.setEnabled(True)
         if msg.data == "/Record_Another":
+            self._widget.generate_action_notebook_button.setEnabled(True)
             self._widget.another_button.setEnabled(True)
         if msg.data == "/Say_To_Change_Name":
+            self.update_paths()
             self._widget.activity_group.setEnabled(True)
 
         if "don_imus" in msg.data:
@@ -227,7 +291,6 @@ class MyPlugin(Plugin):
         
         if "Turn_On_Insoles" in msg.data:
             self._widget.turn_on_insoles_button.setEnabled(True)
-
 
 
     def set_running(self, req = None):    
@@ -269,11 +332,15 @@ class MyPlugin(Plugin):
                         "subject_id"        :self.subject_id,
                         "session_num"       :self.session_num,
                         "save_path"         :self.save_path,
-                        "description_text"  :self.description_text}
+                        "description_text"  :self.description_text,
+                        "weight"            :self.weight}
 
         rospy.logdebug(the_params)
         for key, value in the_params.items():
             rospy.set_param(f"/{self.my_namespace}/{key}", value )
+        
+
+        ### btw, I am runnign this all the time, it's fast, so it doesnt really matter, but maybe consider optimizing
         rospy.logdebug("what I got: "+str(rospy.get_param(f"/{self.my_namespace}")))
         #self.update_widget_states()
         
@@ -357,6 +424,22 @@ class MyPlugin(Plugin):
         #rospy.loginfo("timerEvent triggered")
         self._widget.update()
 
+    def _generate_notebook_clicked(self):
+        rospy.loginfo("generate notebook button clicked")
+        ## parse bag files if they exist
+        activity_name = segment_activity_from_counter(self.activity_name)
+
+        source_topic = "/id_node"
+        for bag_file in glob.glob(os.path.join(self.save_path,"*.bag")):
+            if activity_name in bag_file:
+                p = subprocess.Popen(["rostopic","echo","-b", bag_file,"-p",source_topic], stdout=subprocess.PIPE) #> timings.txt])
+                out, err = p.communicate()
+                with open(bag_file+"_timings.txt", 'wb') as timings:
+                    timings.write(out)
+
+        new_ipynb_name =os.path.join(self.save_path, "%s_analysis.ipynb"%(activity_name)) 
+        rospy.loginfo(new_ipynb_name)
+        generate_custom_ipynb(new_ipynb_name,new_header,activity_name,self.subject_id,self.session_num, self.weight)
 
     def _handle_lib_moment_clicked(self):
         rospy.loginfo("lib_moment clicked!")
@@ -364,7 +447,15 @@ class MyPlugin(Plugin):
         previous_text = self._widget.generate_lib_moment_arm_button.text()
         self._widget.generate_lib_moment_arm_button.setText("Generating...")
 
-        subprocess.run(f"python3 /catkin_ws/src/ros_biomech/lib_moment_arm/symbolic_moment_arm_v40.py --model={self.model_path} --results_destination={self.lib_path}",shell=True)
+        path_to_generate_lib_at = os.path.splitext(self.lib_path)[0]
+        
+        shutil.copy(self.model_path,"/srv/host_data/models/")
+        #subprocess.run(f"python3 /catkin_ws/src/ros_biomech/lib_moment_arm/symbolic_moment_arm_v40.py --model={self.model_path} --results_destination={path_to_generate_lib_at}",shell=True)
+        subprocess.run(f"/usr/bin/catkin_build_ws.bash",shell=True)
+        #my_so_files = os.path.join(path_to_generate_lib_at,"*.so")
+        #for fi in my_so_files:
+        #    shutil.copy(fi, self.lib_path)
+
         self._widget.generate_lib_moment_arm_button.setText(previous_text)
         self._widget.generate_lib_moment_arm_button.setEnabled(True)
         self.update_things()
@@ -547,4 +638,10 @@ class MyPlugin(Plugin):
         # Comment in to signal that the plugin has a way to configure
         # This will enable a setting button (gear icon) in each dock widget title bar
         # Usually used to open a modal configuration dialog
+    
+
+    def update_log(self, msg):
+        #self._widget.log_box.setText(msg.text)
+        # there is the msg.status_code that changes the color of the text here, but i don't know how to format text in QTextEdit element...
+        pass 
 
