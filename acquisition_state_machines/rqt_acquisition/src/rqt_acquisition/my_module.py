@@ -331,7 +331,7 @@ class MyPlugin(Plugin):
         self.update_widget_states()
             
     def set_to_params(self):
-        rospy.logdebug("set_to_params")
+        rospy.loginfo("set_to_params")
         the_params = {  "model_path"        :self.model_path,
                         "lib_path"          :self.lib_path,
                         "activity_name"     :self.activity_name,
@@ -522,6 +522,8 @@ class MyPlugin(Plugin):
         rospy.loginfo("another clicked!")
         self.activity_counter+=1
         self.activity_name = self._activity_name_bare + str(self.activity_counter)
+        self.set_to_params()
+        self.update_widget_states()
         try:
             command_msg = OutcomeRequest()
             command_msg.outcome = 0
