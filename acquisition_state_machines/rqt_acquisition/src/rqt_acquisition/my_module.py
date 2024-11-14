@@ -67,13 +67,21 @@ def generate_custom_ipynb(new_ipynb_name, updated_header, activity,subject,sessi
 
 
 def segment_activity_from_counter(activity_name):
+    counter = 0
     match = re.match(r"([a-z]+)([0-9]+)", activity_name, re.I)
     if match:
         rospy.loginfo("found a trial counter, will remove it to get the activity name")
         items = match.groups()
         if len(items) >= 2:
             activity_name = "".join(items[:-1])
-    return activity_name
+            counter = int(items[-1])
+        else:
+            rospy.logerr(activity_name)
+            rospy.logerr(items)
+    else:
+        rospy.logwarn("regex didnt find counter!"+activity_name)
+
+    return activity_name, counter
 
 def print_events(obj):
     rospy.logdebug(obj)
@@ -231,6 +239,7 @@ class MyPlugin(Plugin):
         self.session_num = ""
         self.save_path = ""
         self.description_text = ""
+        self.activity_counter = 0
 
         self.set_from_params()
 
@@ -249,10 +258,7 @@ class MyPlugin(Plugin):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.timerEvent)
         self.timer.start(1000)
-
         self.disable_buttons()
-
-
 
     def disable_buttons(self):
         self._widget.calibrate_button.setEnabled(False)
@@ -404,6 +410,7 @@ class MyPlugin(Plugin):
                                             self.activity_name,
                                             self.session_num
                 ) 
+        self._activity_name_bare, self.activity_counter = segment_activity_from_counter(self.activity_name)
 
         self._widget.resolved_path_name.setText(   self.save_path )
         self.activity_name = self._widget.activity_name.text()
@@ -427,7 +434,7 @@ class MyPlugin(Plugin):
     def _generate_notebook_clicked(self):
         rospy.loginfo("generate notebook button clicked")
         ## parse bag files if they exist
-        activity_name = segment_activity_from_counter(self.activity_name)
+        activity_name, _ = segment_activity_from_counter(self.activity_name)
 
         source_topic = "/id_node"
         for bag_file in glob.glob(os.path.join(self.save_path,"*.bag")):
@@ -513,6 +520,8 @@ class MyPlugin(Plugin):
     
     def _handle_another_clicked(self):
         rospy.loginfo("another clicked!")
+        self.activity_counter+=1
+        self.activity_name = self._activity_name_bare + str(self.activity_counter)
         try:
             command_msg = OutcomeRequest()
             command_msg.outcome = 0
