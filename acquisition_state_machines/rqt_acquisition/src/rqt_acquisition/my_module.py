@@ -231,6 +231,10 @@ class MyPlugin(Plugin):
 
         self.my_namespace = 'rqt_acquisition'
 
+        self._widget.calibrate_button.setStyleSheet("font-size: 24px;");
+        self._widget.start_button.setStyleSheet("font-size: 24px;");
+        self._widget.stop_button.setStyleSheet("font-size: 24px;");
+
         self.model_path = ""
         self.lib_path = ""
         self.lib_path_exists = False
@@ -359,10 +363,17 @@ class MyPlugin(Plugin):
         self._widget.resolved_path_name.setText(   self.save_path )
         self._widget.model_selected_name.setText(self.model_path)
         self.lib_path_exists, self.lib_path = check_if_lib_moment_arm_exists_at_path(self.model_path)
+        ##TODO: color change is not repainting, so it was removed.
         if self.lib_path_exists:
             self._widget.lib_moment_arm_text.setText("[V] "+self.lib_path)
+            #self._widget.lib_moment_arm_text.setStyleSheet("color: green;")
         else:
             self._widget.lib_moment_arm_text.setText("[X] "+self.lib_path)
+            #self._widget.lib_moment_arm_text.setStyleSheet("color: red;")
+        #self._widget.lib_moment_arm_text.repaint()
+        #self._widget.lib_moment_arm_text.parentWidget().repaint()
+        #self._widget.lib_moment_arm_text.parentWidget().parentWidget().repaint()
+        #self._widget.repaint()
         self._widget.subject_id_name.setText(self.subject_id)
         self._widget.activity_name.setText(self.activity_name)
         self._widget.session_name.setText(self.session_num)

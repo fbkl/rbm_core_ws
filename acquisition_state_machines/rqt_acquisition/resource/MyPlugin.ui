@@ -166,9 +166,9 @@
 			<property name="geometry">
 				<rect>
 					<x>5</x>
-					<y>480</y>
+					<y>467</y>
 					<width>200</width>
-					<height>27</height>
+					<height>44</height>
 				</rect>
 			</property>
 			<property name="text">
@@ -179,9 +179,9 @@
 			<property name="geometry">
 				<rect>
 					<x>5</x>
-					<y>520</y>
+					<y>511</y>
 					<width>200</width>
-					<height>27</height>
+					<height>45</height>
 				</rect>
 			</property>
 			<property name="text">
@@ -192,9 +192,9 @@
 			<property name="geometry">
 				<rect>
 					<x>5</x>
-					<y>560</y>
+					<y>556</y>
 					<width>200</width>
-					<height>27</height>
+					<height>44</height>
 				</rect>
 			</property>
 			<property name="text">
