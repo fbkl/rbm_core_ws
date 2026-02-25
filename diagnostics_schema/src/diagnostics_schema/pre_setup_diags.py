@@ -107,7 +107,7 @@ class Sound(ATest):
         self.soundfile = soundfilename
 
     def run(self):
-        self.soundreturn = subprocess.run(["aplay",self.soundfile], capture_output=True,text = True)
+        self.soundreturn = subprocess.run(["paplay",self.soundfile], capture_output=True,text = True)
         try:
             self.soundreturn.check_returncode()
             return 'OK'
