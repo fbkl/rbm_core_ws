@@ -42,6 +42,101 @@ class ATest(ABC):
     def testname(self):
         return ""
 
+
+
+class CheckRemote(ATest):
+    def __init__(self, username, hostname, command, **kwargs):
+        super().__init__(**kwargs)
+        self.user = username
+        self.host = hostname
+        self.command = command
+
+    def run(self):
+        try:
+            self.hostreturn = subprocess.check_output(["ssh","-q", "-o","BatchMode=yes",
+                "-o","ConnectTimeout=3",
+                f"{self.user}@{self.host}", *self.command], timeout=2).decode()
+        except Exception as e:
+            return self.criticality+repr(e)#+self.hostreturn.stderr
+
+
+    def troubleshootingmsg(self):
+        return ["Is SSH running on the host?", "Are the keys properly setup?",f"Is {self.command} a valid command?"]
+
+    def testname(self):
+        return f"Checks to see if {self.command} runs in the host [{Style.BRIGHT}{self.host}{Style.NORMAL}]."
+
+
+class CheckRemoteRealsense(CheckRemote):
+    def __init__(self, username, hostname, **kwargs):
+        super().__init__(username, hostname, ["lsusb"],**kwargs)
+        self.realsense_cameras = []
+
+    def run(self):
+        try:
+            super().run()
+            for line in self.hostreturn.splitlines():
+                if 'RealSense' in line:
+                    self.realsense_cameras.append(line)
+            if not self.realsense_cameras:
+                ret = self.criticality+ "No RealSense camera found!"
+                return str(ret)
+
+            return 'OK'
+        except Exception as e:
+            return self.criticality+repr(e)#+self.hostreturn.stderr
+
+
+    def troubleshootingmsg(self):
+        return [*super().troubleshootingmsg(), *["Is the realSense Camera plugged in?"]]
+
+    def testname(self):
+        msg = ""
+        if self.realsense_cameras:
+            for camera in self.realsense_cameras:
+                msg += f"Camera(s)[{Style.BRIGHT}{camera}{Style.NORMAL}] found running on [{Style.BRIGHT}{self.host}{Style.NORMAL}]."
+        else:
+            msg = f"Looking for RealSense cameras in [{Style.BRIGHT}{self.host}{Style.NORMAL}]." 
+        return msg
+
+class CheckRemoteChrony(CheckRemote):
+    def __init__(self, username, hostname, **kwargs):
+        super().__init__(username, hostname, ["chronyc", "tracking"],**kwargs)
+
+    def run(self):
+        try:
+            super().run()
+            fields = {}
+            for line in self.hostreturn.splitlines():
+                if ':' in line:
+                    k, _, v = line.partition(":")
+                    fields[k.strip()] = v.strip()
+            leap = fields.get("Leap status", "")
+            sys_time_str = fields.get("System time", "")
+            ref_id = fields.get("Reference ID","")
+
+            if "Not synchronised" in leap or ref_id.startswith("0000"):
+                return self.criticality + "Clocks are not synchronized!"
+
+            return 'OK'
+        except Exception as e:
+            return self.criticality+repr(e)#+self.hostreturn.stderr
+
+
+    def troubleshootingmsg(self):
+        return super().troubleshootingmsg().extend(["Chrony should be running"])
+
+    def testname(self):
+        return f"Checks to see if chrony is alive and synchronized in the host [{Style.BRIGHT}{self.host}{Style.NORMAL}]."
+
+
+
+
+
+
+
+
+
 class CheckOwnHost(ATest):
     def __init__(self, own_ip="192.168.1.100", criticality = 'Critical: '):
         super().__init__(criticality)
@@ -162,7 +257,7 @@ def do(tests):
                 rospy.logerr("\t"+msg)
             for sugg in test.troubleshootingmsg():
                 rospy.logwarn(f"\t\t[{Style.BRIGHT}{Style.NORMAL}] {sugg}")
-        if OPTIONAL_REQUIREMENT in ret:
+        elif OPTIONAL_REQUIREMENT in ret:
             rospy.logwarn(f"\t[{Style.BRIGHT}{Style.NORMAL}] {test.testname()}")
             fail_bin.append(test.testname())
             msg =" ".join(ret.split(REQUIREMENT)[1:]) 
