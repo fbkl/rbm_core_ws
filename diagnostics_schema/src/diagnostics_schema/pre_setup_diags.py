@@ -42,6 +42,26 @@ class ATest(ABC):
     def testname(self):
         return ""
 
+class X11Host(ATest):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.display = None
+    def run(self):
+        try:
+            self.display = os.getenv("DISPLAY")
+            if self.display:
+                return 'OK'
+            else:
+                return self.criticality
+
+        except Exception as e:
+            return self.criticality+repr(e)#+self.hostreturn.stderr
+
+    def troubleshootingmsg(self):
+        return ["The DISPLAY environment variable is empty!! this means that the docker was started in an ssh or other type of session where the DISPLAY variable was not defined. ", "Try reruning the prediags in a session connected with:\n\tssh user@machine -X\n"]
+
+    def testname(self):
+        return f"Checks if X11 forwarding is running."
 
 
 class CheckRemote(ATest):

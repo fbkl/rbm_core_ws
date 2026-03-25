@@ -2,7 +2,7 @@
 
 import rospy
 import pre_setup_diags
-from pre_setup_diags import CheckOwnHost, PingHost, Sound, Video, CheckRemoteChrony, CheckRemoteRealsense
+from pre_setup_diags import CheckOwnHost, PingHost, Sound, Video, CheckRemoteChrony, CheckRemoteRealsense, X11Host
 
 
 rospy.init_node("pre_setup_tester")
@@ -10,6 +10,7 @@ rospy.init_node("pre_setup_tester")
 tests = []
 
 #tests.append(CheckOwnHost())
+tests.append(X11Host(criticality=pre_setup_diags.CRITICAL_REQUIREMENT))
 tests.append(PingHost("router","192.168.1.1"))
 #tests.append(PingHost("myself","192.168.1.100", criticality=pre_setup_diags.OPTIONAL_REQUIREMENT))
 #tests.append(PingHost("tablet","192.168.1.101", tips=["You can also use VNC to control the tablet now. Just connect to:\n\n\thttp://192.168.1.101:5800/vnc.html?autoconnect=true&show_dot=true&192.168.1.101&port=5900 \n"]))
