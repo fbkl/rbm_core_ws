@@ -469,7 +469,7 @@ class MyPlugin(Plugin):
         
         shutil.copy(self.model_path,"/srv/host_data/models/")
         #subprocess.run(f"python3 /catkin_ws/src/ros_biomech/lib_moment_arm/symbolic_moment_arm_v40.py --model={self.model_path} --results_destination={path_to_generate_lib_at}",shell=True)
-        subprocess.run(f"/usr/bin/catkin_build_ws.bash --only-pkg-with-deps lib_moment_arm -DSINGLE_TARGET_FILE={self.model_path}",shell=True)
+        subprocess.run(f"/usr/bin/catkin_build_ws.bash --pkg lib_moment_arm -DSINGLE_TARGET_FILE={self.model_path}",shell=True)
         #my_so_files = os.path.join(path_to_generate_lib_at,"*.so")
         #for fi in my_so_files:
         #    shutil.copy(fi, self.lib_path)
