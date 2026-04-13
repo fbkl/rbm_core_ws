@@ -61,7 +61,7 @@ class X11Host(ATest):
         return ["The DISPLAY environment variable is empty!! this means that the docker was started in an ssh or other type of session where the DISPLAY variable was not defined. ", "Try reruning the prediags in a session connected with:\n\tssh user@machine -X\n"]
 
     def testname(self):
-        return f"Checks if X11 forwarding is running."
+        return "Checks if X11 forwarding is running."
 
 
 class CheckRemote(ATest):
@@ -144,7 +144,7 @@ class CheckRemoteChrony(CheckRemote):
 
 
     def troubleshootingmsg(self):
-        return super().troubleshootingmsg().extend(["Chrony should be running"])
+        return [*super().troubleshootingmsg(), *["Chrony should be running"]]
 
     def testname(self):
         return f"Checks to see if chrony is alive and synchronized in the host [{Style.BRIGHT}{self.host}{Style.NORMAL}]."
