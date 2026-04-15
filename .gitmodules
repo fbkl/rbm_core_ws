@@ -26,3 +26,6 @@
 	path = realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
 	branch = ros1-legacy
+[submodule "acquisition_state_machines/acquisition_of_raw_data"]
+	path = acquisition_state_machines/acquisition_of_raw_data
+	url = git@github.com:fbkl/acquisition_of_raw_data.git
