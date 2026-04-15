@@ -10,9 +10,6 @@
 [submodule "ddynamic_reconfigure"]
 	path = ddynamic_reconfigure
 	url = https://github.com/pal-robotics/ddynamic_reconfigure.git
-[submodule "imu_tools"]
-	path = imu_tools
-	url = https://github.com/CCNYRoboticsLab/imu_tools.git
 [submodule "lib_moment_arm"]
 	path = lib_moment_arm
 	url = https://github.com/opensimrt-ros/lib_moment_arm.git
@@ -28,3 +25,4 @@
 [submodule "realsense-ros"]
 	path = realsense-ros
 	url = https://github.com/IntelRealSense/realsense-ros.git
+	branch = ros1-legacy
