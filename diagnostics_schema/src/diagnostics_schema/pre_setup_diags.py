@@ -26,6 +26,8 @@ class ATest(ABC):
         super().__init__()
         self.criticality = criticality
         self.tips= []
+        self.hostreturn = ''
+
         if tips:
             self.tips = tips
 
@@ -76,6 +78,7 @@ class CheckRemote(ATest):
             self.hostreturn = subprocess.check_output(["ssh","-q", "-o","BatchMode=yes",
                 "-o","ConnectTimeout=3",
                 f"{self.user}@{self.host}", *self.command], timeout=2).decode()
+            return ''
         except Exception as e:
             return self.criticality+repr(e)#+self.hostreturn.stderr
 
@@ -94,7 +97,7 @@ class CheckRemoteRealsense(CheckRemote):
 
     def run(self):
         try:
-            super().run()
+            self.criticality += super().run()
             for line in self.hostreturn.splitlines():
                 if 'RealSense' in line:
                     self.realsense_cameras.append(line)
@@ -125,7 +128,7 @@ class CheckRemoteChrony(CheckRemote):
 
     def run(self):
         try:
-            super().run()
+            self.criticality += super().run()
             fields = {}
             for line in self.hostreturn.splitlines():
                 if ':' in line:
