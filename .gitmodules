@@ -29,3 +29,6 @@
 [submodule "acquisition_state_machines/acquisition_of_raw_data"]
 	path = acquisition_state_machines/acquisition_of_raw_data
 	url = git@github.com:fbkl/acquisition_of_raw_data.git
+[submodule "diagnostics_schema"]
+	path = diagnostics_schema
+	url = git@github.com:fbkl/diagnostics_schema.git
